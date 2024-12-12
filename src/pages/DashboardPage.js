@@ -10,6 +10,7 @@ import NewsletterSignup from '../components/NewsletterSignup';
 import Cart from '../components/Cart';
 import VendorCard from '../components/VendorCard';
 import useStore from '../stores/store';
+import BuyerSidebar from './BuyerSidebar';
 
 const DashboardPage = () => {
     const { initializeCart, fetchProducts, } = useStore();
@@ -20,16 +21,17 @@ const DashboardPage = () => {
     // }, [initializeCart, fetchProducts]);
 
     return (
-        <>
+        <>  <BuyerSidebar /> 
             <Navbar />
             <Banner />
             <FeaturedCategories />
             <ProductListing />
             <PromotionalBanner />
-            <Testimonials />
+            {/* <Testimonials /> */}
             <VendorCard />
-            <Cart />
+          
             <NewsletterSignup />
+            <ProductListing />
             <Footer />
         </>
     );

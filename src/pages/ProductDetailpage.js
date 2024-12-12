@@ -8,6 +8,7 @@ import ProductInfo from '../components/ProductInfo';
 import ProductReviews from '../components/ProductReviews';
 import Footer from '../components/Footer';
 import Navbar from '../components/Navbar';
+import ProductListing from '../components/FeatureProducts';
 
 const ProductPage = () => {
     const { id } = useParams(); // Get the product ID from the route
@@ -42,7 +43,7 @@ const ProductPage = () => {
             <Navbar />
 
             {/* Main Product Layout */}
-            <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6} p={4} maxW={{ base: "100%", lg: "1200px" }} mx="auto">
+            <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={8} p={10} maxW={{ base: "100%", lg: "1200px" }} mx="auto">
                 <GridItem>
                     <ProductImageCarousel images={product.images} /> {/* Pass product images */}
                 </GridItem>
@@ -53,7 +54,7 @@ const ProductPage = () => {
 
             {/* Reviews Section */}
             <ProductReviews reviews={product.reviews} />  {/* Pass product reviews */}
-
+            <ProductListing />
             <Footer />
         </>
     );

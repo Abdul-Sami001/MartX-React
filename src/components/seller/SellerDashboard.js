@@ -1,163 +1,125 @@
-import React, { useState } from 'react';
-import { Box, SimpleGrid, Text, Heading, Flex, Input, Button, Avatar, Icon, Grid, GridItem } from '@chakra-ui/react';
+import React, { useState, useEffect } from 'react';
+import { Box, SimpleGrid, Text, Heading, Flex, Button, Icon, Grid, GridItem } from '@chakra-ui/react';
 import { FaDollarSign, FaShoppingCart } from 'react-icons/fa';
 import MonthlyStatsBarChart from './MonthlyStatsBarChart';
-import { Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement } from 'chart.js';
-import Ordersdetails from './Ordersdetails';  // Corrected import
+import Ordersdetails from './VendorOrders'; // Corrected import
 import DailySalesLineChart from './DailySalesLineChart';
-import Sidebar from './Sidebar';
 import ProductPieChart from './ProductPieChart';
+import { useNavigate } from 'react-router-dom';
+import useVendorOrderStore from '../../stores/vendorOrderStore'; // Import store for total sales
 
-ChartJS.register(Title, Tooltip, Legend, ArcElement);
+const SellerDashboard = () => {
+  const navigate = useNavigate();
+  const { orders, fetchVendorOrders } = useVendorOrderStore(); // Get orders from the store
+  const [totalSales, setTotalSales] = useState(0); // State to store total sales
 
-const Dashboard = () => {
-  const [showOrderDetails, setShowOrderDetails] = useState(false);
+  useEffect(() => {
+    if (orders.length === 0) {
+      fetchVendorOrders(); // Fetch orders if not already fetched
+    } else {
+      calculateTotalSales(orders); // Calculate total sales
+    }
+  }, [orders, fetchVendorOrders]);
 
-  // const pieData = {
-  //   labels: ['Product A', 'Product B', 'Product C', 'Product D'],
-  //   datasets: [
-  //     {
-  //       label: 'Product Remaining',
-  //       data: [15, 30, 45, 10],
-  //       backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#66CDAA'],
-  //       borderColor: ['#FF6384', '#36A2EB', '#FFCE56', '#66CDAA'],
-  //       borderWidth: 1,
-  //     },
-  //   ],
-  // };
-
-  const handleOrdersClick = () => {
-    setShowOrderDetails(true);
+  const calculateTotalSales = (orders) => {
+    let total = 0;
+    orders.forEach((order) => {
+      total += order.total || 0; // Summing up order totals
+    });
+    setTotalSales(total);
   };
 
-  const handleBackToDashboard = () => {
-    setShowOrderDetails(false);
+  const handleSwitchToBuyer = () => {
+    navigate('/dashboard');
+  };
+
+  const handleOrdersClick = () => {
+    navigate('/vendor-orders');
   };
 
   return (
-    <Box p="20px" flex="1" bg="#0A0E23" color="white" minHeight="100vh" border="1px solid #E2E8F0">
-      {showOrderDetails ? (
-        <>
-          <Button onClick={handleBackToDashboard} colorScheme="blue" mb="4">
-            Back to Dashboard
-          </Button>
-          <Ordersdetails /> {/* Corrected component name */}
-        </>
-      ) : (
-        <>
-        
-          <Flex justify="space-between" align="center" mb="20px">
-            <Input placeholder="Search" width="250px" bg="white" color="black" />
-            <Button colorScheme="#0A0E23" _hover={{ bg: '#F47D31' }}>Switch to Buyer</Button>
-          </Flex>
+    <Box p="20px" flex="1" bg="#0A0E23" color="white" height="97vh" border="1px solid #E2E8F0">
+      <Flex justify="flex-start" align="center" mb="20px">
+        <Button colorScheme='#F47D31' _hover={{ bg: '#F47D31' }} onClick={handleSwitchToBuyer}>
+          Switch to Buyer
+        </Button>
+      </Flex>
 
-          <SimpleGrid columns={2} width="550px" spacing={0} mb="20px">
-            <Box
-              bg="white"
-              p="15px"
-              borderRadius="md"
-              boxShadow="md"
-              textAlign="center"
-              borderWidth="1px"
-              borderColor="gray.200"
-              width="250px"
-              height="150px"
-            >
-              <Icon as={FaDollarSign} w={6} h={6} color="#F47D31" mb="2" />
-              <Heading size="lg" mb="2" color="#0A0E23">Total Sales</Heading>
-              <Text fontSize="l" color="#F47D31">$25,300</Text>
-            </Box>
-            <Box
-              bg="white"
-              p="15px"
-              borderRadius="md"
-              boxShadow="md"
-              textAlign="center"
-              borderWidth="1px"
-              borderColor="gray.200"
-              width="250px"
-              height="150px"
-              cursor="pointer"
-              onClick={handleOrdersClick}
-            >
-              <Icon as={FaShoppingCart} w={6} h={6} color="#F47D31" mb="2" />
-              <Heading size="lg" mb="2" color="#0A0E23">Orders</Heading>
-              <Text fontSize="xl" color="#F47D31">152</Text>
-            </Box>
-          </SimpleGrid>
+      {/* Total Sales and Orders Boxes with Line Chart */}
+      <SimpleGrid columns={3} spacing="20px" mb="20px">
+        {/* Updated Total Sales Box */}
+        <Box
+          bg="white"
+          p="15px"
+          borderRadius="md"
+          boxShadow="md"
+          textAlign="center"
+          borderWidth="1px"
+          borderColor="gray.200"
+          width="100%"
+          height="150px"
+          cursor="pointer"
+          onClick={() => navigate('/vendorsales')} // Navigate to /vendorsales
+        >
+          <Icon as={FaDollarSign} w={6} h={6} color="#F47D31" mb="2" />
+          <Heading size="lg" mb="2" color="#0A0E23">Total Sales</Heading>
+          <Text fontSize="l" color="#F47D31">Rs {totalSales.toFixed(2)}</Text>
+        </Box>
 
-          {/* Profile Box */}
-          <Box
-            bg="white"
-            p="20px"
-            borderRadius="md"
-            boxShadow="md"
-            borderWidth="1px"
-            borderColor="gray.200"
-            position="absolute"
-            right="20px"
-            top="80px"
-            width="300px"
-          >
-            <Heading size="md" mb="4" color="#0A0E23">Profile</Heading>
-            <Flex align="center">
-              <Avatar name="John Doe" src="/path/to/profile-pic.jpg" size="xl" mr="4" />
-              <Box>
-                <Heading size="sm" color="#0A0E23">John Doe</Heading>
-                <Text color="gray.600">Business Owner</Text>
-                <Button bg="#0A0E23" color="white" _hover={{ bg: '#F47D31' }}>Edit Profile</Button>
-              </Box>
-            </Flex>
-            <Box mt="4">
-              <Text color="gray.600">Business Details:</Text>
-              <Text color="gray.800">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis vehicula ex eu justo interdum, nec sollicitudin orci tincidunt.</Text>
+        <Box
+          bg="white"
+          p="15px"
+          borderRadius="md"
+          boxShadow="md"
+          textAlign="center"
+          borderWidth="1px"
+          borderColor="gray.200"
+          width="100%"
+          height="150px"
+          cursor="pointer"
+          onClick={handleOrdersClick}
+        >
+          <Icon as={FaShoppingCart} w={6} h={6} color="#F47D31" mb="2" />
+          <Heading size="lg" mb="2" color="#0A0E23">Orders</Heading>
+          <Text fontSize="xl" color="#F47D31">152</Text>
+        </Box>
+
+        <Box
+          bg="white"
+          p="15px"
+          borderRadius="md"
+          boxShadow="md"
+          borderWidth="1px"
+          borderColor="gray.200"
+          width="100%"
+          height="150px"
+        >
+          <DailySalesLineChart />
+        </Box>
+      </SimpleGrid>
+
+      {/* Charts Section */}
+      <Grid templateColumns="2fr 1fr" gap="6">
+        <GridItem>
+          <Box width="690px" bg="white" p="20px" borderRadius="md" boxShadow="md">
+            <Heading size="md" mb="2" color="#0A0E23">Overview Order</Heading>
+            <Box height="300px" width="600px" borderRadius="md">
+              <MonthlyStatsBarChart />
             </Box>
           </Box>
+        </GridItem>
 
-          {/* Daily Sales Line Chart */}
-          <Box height="150px" width="650px" mb="30px">
-            <DailySalesLineChart />
+        <GridItem>
+          <Box width="325px" height="370px" bg="white" p="20px" borderRadius="md" boxShadow="md">
+            <Heading size="md" mb="4" color="#0A0E23">Product Breakdown</Heading>
+            <Box mb="20px">
+              <ProductPieChart />
+            </Box>
           </Box>
-
-          <Grid templateColumns="2fr 1fr" gap="6">
-            <GridItem>
-              <Box mt="-20px" width="650px" bg="white" p="20px" borderRadius="md" boxShadow="md">
-                <Heading size="md" mb="2" color="#0A0E23">Overview Order</Heading>
-                <Box height="300px" width="600px" borderRadius="md">
-                  <MonthlyStatsBarChart />
-                </Box>
-              </Box>
-            </GridItem>
-            <GridItem>
-              <Box width="300px" bg="white" p="20px" borderRadius="md" boxShadow="md">
-                <Heading size="md" mb="4" color="#0A0E23">Product Breakdown</Heading>
-                {/* <Box height="300px" width="100%" borderRadius="md">
-                  <Pie
-                    data={pieData}
-                    options={{
-                      responsive: true,
-                      plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                          callbacks: {
-                            label: (context) => `${context.label}: ${context.raw}%`,
-                          },
-                        },
-                      },
-                    }}
-                  />
-                </Box> */}
-                <Box mb="20px">
-        <ProductPieChart />
-      </Box>
-              </Box>
-            </GridItem>
-          </Grid>
-        </>
-      )}
+        </GridItem>
+      </Grid>
     </Box>
   );
 };
 
-export default Dashboard;
+export default SellerDashboard;

@@ -70,12 +70,14 @@ const CartDrawer = ({ isOpen, onClose, cartItems, loading }) => {
 
     // Handle checkout initiation
     const handleCheckout = () => {
-        if (!accessToken) {
-            //alert('Please login to checkout');
-            openGuestModal();
+        if (accessToken) {
+            // Authenticated user: Redirect to checkout page with cart info
+            navigate('/checkout', {
+                state: { cartId }
+            });
         } else {
-            const guestInfo = JSON.parse(localStorage.getItem('guestInfo')) || {};
-            initiateCheckoutMutation.mutate(guestInfo);
+            // Guest user: Open the guest info modal
+            openGuestModal();
         }
     };
 
@@ -84,7 +86,17 @@ const CartDrawer = ({ isOpen, onClose, cartItems, loading }) => {
         // Store guest info in local storage to persist
         localStorage.setItem('guestInfo', JSON.stringify(guestInfo));
         // Proceed with checkout once guest info is collected
-        initiateCheckoutMutation.mutate(guestInfo);
+        //initiateCheckoutMutation.mutate(guestInfo);
+
+
+        // Redirect to checkout page with cart info and guest details
+        navigate('/checkout', {
+            state: {
+                cartId,
+                guestInfo
+            }
+        });
+
         closeGuestModal();  // Close the modal
     };
 
@@ -147,7 +159,7 @@ const CartDrawer = ({ isOpen, onClose, cartItems, loading }) => {
                             colorScheme="orange"
                             w="full"
                             onClick={handleCheckout}
-                            isLoading={initiateCheckoutMutation.isLoading || loading}
+                            isLoading={loading}
                         >
                             Checkout
                         </Button>

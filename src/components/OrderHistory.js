@@ -47,7 +47,7 @@ const OrderHistory = () => {
                         <Button
                             colorScheme="blue"
                             mt={2}
-                            onClick={() => navigate(`/orders/${order.id}`)}
+                            onClick={() => navigate(`/order-confirmation/${order.id}`)}
                         >
                             View Order
                         </Button>

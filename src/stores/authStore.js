@@ -71,7 +71,7 @@ const useAuthStore = create((set) => ({
         });
 
         // Redirect to login page after logout
-        window.location.href = '/login';
+        window.location.href = '/auth';
     },
 }));
 

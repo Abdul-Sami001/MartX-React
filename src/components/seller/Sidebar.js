@@ -32,7 +32,7 @@ const Sidebar = () => {
   };
 
   const links = [
-    { to: '/seller-dashboard', label: 'Dashboard', icon: FaTachometerAlt },
+    { to: '/MainSellerPage', label: 'Dashboard', icon: FaTachometerAlt },
     { to: '/earnings', label: 'Earnings', icon: FaDollarSign },
     { to: '/services', label: 'My Services', icon: FaServicestack },
     { to: '/inbox', label: 'Inbox', icon: FaInbox },

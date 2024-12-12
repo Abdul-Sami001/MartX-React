@@ -4,8 +4,10 @@ import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
 import { getProducts, createProduct, deleteProduct, updateProduct } from '../../services/productService';
 import AddProductModal from './AddProductModal'; 
 import { useDisclosure } from '@chakra-ui/react';
-
+import { useNavigate } from 'react-router-dom';
+import { ArrowBackIcon } from '@chakra-ui/icons';
 const ManageInventory = () => {
+  const navigate = useNavigate();
   const [inventoryItems, setInventoryItems] = useState([]);
   const [collections, setCollections] = useState([]);
   const [newProduct, setNewProduct] = useState({
@@ -141,6 +143,13 @@ const ManageInventory = () => {
       mt="0px" 
       borderRadius="lg"
     >
+       <IconButton
+                aria-label="Back"
+                icon={<ArrowBackIcon />}
+                colorScheme="orange"
+                onClick={() => navigate('/MainSellerPage')} 
+                mb="4"
+            />
       <Heading mb="20px" color="#F47D31">Manage Inventory</Heading>
 
       {/* Add Product Button */}

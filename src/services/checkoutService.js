@@ -130,12 +130,12 @@ const API_BASE_URL = 'http://127.0.0.1:8000';
 //     }
 // };
 
-export const createOrder = async ({ cartId = null, userInfo = null, productId = null, quantity = 1 }) => {
+export const createOrder = async ({ cartId = null, userInfo = null, productId = null, quantity = 1, paymentMethod }) => {
     const accessToken = localStorage.getItem('accessToken');  // Check for user token
     const refreshToken = localStorage.getItem('refreshToken');  // Token for refresh
     let createdOrderId = localStorage.getItem('orderId');  // Check if orderId is already stored in localStorage
     let orderResponse = null;
-
+    console.log("Selected Payment Method:", paymentMethod);
     if (!cartId && !productId) {
         toast.error('Cart or product information is required to create an order.');
         throw new Error('Cart or product information is required.');
@@ -152,8 +152,8 @@ export const createOrder = async ({ cartId = null, userInfo = null, productId = 
         if (accessToken) {
             try {
                 const payload = productId
-                    ? { product_id: productId, quantity }  // For Buy Now
-                    : { cart_id: cartId };  // For cart-based checkout
+                    ? { product_id: productId, quantity, payment_method: paymentMethod }  // Added paymentMethod here
+                    : { cart_id: cartId, payment_method: paymentMethod };  // Added paymentMethod here
 
                 // Create order for authenticated user
                 orderResponse = await api.post(`${API_BASE_URL}/store/orders/`, payload);
@@ -169,8 +169,8 @@ export const createOrder = async ({ cartId = null, userInfo = null, productId = 
 
                     // Retry order creation with the new token
                     const payload = productId
-                        ? { product_id: productId, quantity }
-                        : { cart_id: cartId };
+                        ? { product_id: productId, quantity, payment_method: paymentMethod }  // Added paymentMethod here
+                        : { cart_id: cartId, payment_method: paymentMethod };  // Added paymentMethod here
 
                     orderResponse = await api.post(`${API_BASE_URL}/store/orders/`, payload);
                     createdOrderId = orderResponse.data.id;
@@ -184,11 +184,13 @@ export const createOrder = async ({ cartId = null, userInfo = null, productId = 
                 toast.error('Guest user information is incomplete.');
                 throw new Error('Guest user information is incomplete.');
             }
+            
 
             const payload = productId
-                ? { product_id: productId, quantity, ...userInfo }  // For guest "Buy Now"
-                : { cart_id: cartId, ...userInfo };  // For guest cart checkout
+                ? { product_id: productId, quantity, payment_method: paymentMethod, ...userInfo }  // Added paymentMethod here
+                : { cart_id: cartId, payment_method: paymentMethod, ...userInfo };  // Added paymentMethod here
 
+            console.log("Payment Method", paymentMethod)
             orderResponse = await axios.post(`${API_BASE_URL}/store/orders/`, payload);
             createdOrderId = orderResponse.data.id;
         }

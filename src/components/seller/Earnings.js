@@ -1,30 +1,93 @@
-// src/components/Earnings.js
-import React from 'react';
-import { Box, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, StatArrow, Grid, GridItem } from '@chakra-ui/react';
+import React, { useEffect, useState } from 'react';
+import { IconButton, Box, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText, StatArrow, Grid, GridItem } from '@chakra-ui/react';
 import { Bar, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import { ArrowBackIcon } from '@chakra-ui/icons';
+import { useNavigate } from 'react-router-dom';
+import useVendorOrderStore from '../../stores/vendorOrderStore';
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
 const Earnings = () => {
-  // Mock data for the charts
+  const navigate = useNavigate();
+  const { orders, fetchVendorOrders } = useVendorOrderStore(); // Access vendor orders from store
+  const [monthlyEarnings, setMonthlyEarnings] = useState(new Array(12).fill(0)); // Initialize earnings for 12 months
+  const [percentageChange, setPercentageChange] = useState(new Array(12).fill(0)); // Track percentage change for each month
+  const [hoveredMonth, setHoveredMonth] = useState(new Date().getMonth()); // Track hovered month
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // Set current month as default
+
+  // Categorize earnings by month
+  const categorizeEarningsByMonth = (orders) => {
+    const earningsByMonth = new Array(12).fill(0);
+
+    orders.forEach((order) => {
+      const orderDate = new Date(order.placed_at);
+      const month = orderDate.getMonth(); // Get month index (0 for Jan, 11 for Dec)
+      earningsByMonth[month] += order.total;
+    });
+
+    setMonthlyEarnings(earningsByMonth);
+    calculatePercentageChanges(earningsByMonth); // Calculate percentage changes after categorizing
+  };
+
+  // Calculate percentage change for each month
+  const calculatePercentageChanges = (earningsByMonth) => {
+    const changes = new Array(12).fill(0);
+
+    earningsByMonth.forEach((currentMonthEarnings, index) => {
+      const previousMonthEarnings = earningsByMonth[index - 1] || 0; // Handle case when it's January
+      if (previousMonthEarnings > 0) {
+        const change = ((currentMonthEarnings - previousMonthEarnings) / previousMonthEarnings) * 100;
+        changes[index] = change.toFixed(2);
+      } else {
+        changes[index] = currentMonthEarnings > 0 ? 100 : 0; // Handle first month or no previous earnings
+      }
+    });
+
+    setPercentageChange(changes);
+  };
+
+  // Handle bar click to navigate to Vendor Sales with selected month
+  const handleBarClick = (monthIndex) => {
+    setSelectedMonth(monthIndex);
+    // Navigate to Vendor Sales page with the selected month as state
+    navigate('/vendorsales', { state: { month: monthIndex } });
+  };
+
+  // Handle hover over bar to update percentage change text
+  const handleBarHover = (monthIndex) => {
+    setHoveredMonth(monthIndex);
+  };
+
+  // Fetch vendor orders on component mount and categorize earnings
+  useEffect(() => {
+    fetchVendorOrders();
+  }, [fetchVendorOrders]);
+
+  useEffect(() => {
+    if (orders.length > 0) {
+      categorizeEarningsByMonth(orders);
+    }
+  }, [orders]);
+
   const barData = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [
       {
-        label: 'Earnings ($)',
-        data: [5000, 4000, 6000, 7000, 5000, 8000],
+        label: 'Earnings (Rs)',
+        data: monthlyEarnings,
         backgroundColor: '#F47D31',
         borderColor: '#0A0E23',
         borderWidth: 2,
-        barThickness: 10,
-        barPercentage: 0.5,
-        categoryPercentage: 0.1,
+        barThickness: 15, // Increased bar thickness for wider bars
+        barPercentage: 0.8, // Adjust bar percentage for more width
+        categoryPercentage: 0.5, // Adds spacing between bars
       },
     ],
   };
 
+  // Mock pieData for demonstration
   const pieData = {
     labels: ['Product A', 'Product B', 'Product C'],
     datasets: [
@@ -43,21 +106,64 @@ const Earnings = () => {
       legend: {
         display: true,
       },
+      tooltip: {
+        callbacks: {
+          // Show percentage change in tooltip
+          label: (context) => {
+            const monthIndex = context.dataIndex;
+            const percentage = percentageChange[monthIndex];
+            return `Earnings: Rs ${context.raw.toFixed(2)} (${percentage}% from previous month)`;
+          },
+        },
+      },
     },
     scales: {
       x: {
         beginAtZero: true,
+        ticks: {
+          color: '#FFFFFF', // White color for month names
+        },
+        grid: {
+          color: '#505050', // Darker grid lines for x-axis
+        },
+        offset: true, // Adds spacing on X-axis
       },
       y: {
         beginAtZero: true,
+        ticks: {
+          stepSize: 5000, // Set increment to 5000
+          callback: (value) => `Rs ${value}`, // Add rupee symbol to y-axis labels
+          color: '#FFFFFF',
+        },
+        grid: {
+          color: '#505050', // Darker grid lines for y-axis
+        },
+        grace: '10%', // Adds spacing above the highest bar
       },
+    },
+    onClick: (e, elements) => {
+      if (elements.length > 0) {
+        const index = elements[0].index;
+        handleBarClick(index); // Handle bar click
+      }
+    },
+    onHover: (e, elements) => {
+      if (elements.length > 0) {
+        const index = elements[0].index;
+        handleBarHover(index); // Handle bar hover
+      }
     },
   };
 
   return (
     <Box display="flex" height="100vh" bg="#0A0E23" color="white" border="2px">
-      {/* Sidebar height should match page height */}
-      
+      <IconButton
+        aria-label="Back"
+        icon={<ArrowBackIcon />}
+        colorScheme="orange"
+        onClick={() => navigate('/MainSellerPage')}
+        mb="4"
+      />
 
       <Box flex="1" p="20px" overflowY="auto">
         <Heading mb="20px" color="#F47D31">Earnings Analytics</Heading>
@@ -65,10 +171,10 @@ const Earnings = () => {
         <SimpleGrid columns={2} spacing={10} mb="20px">
           <Stat>
             <StatLabel>Total Earnings</StatLabel>
-            <StatNumber>$40,000</StatNumber>
+            <StatNumber>Rs {monthlyEarnings.reduce((a, b) => a + b, 0).toFixed(2)}</StatNumber>
             <StatHelpText>
-              <StatArrow type="increase" />
-              15% from last month
+              <StatArrow type={percentageChange[hoveredMonth] >= 0 ? 'increase' : 'decrease'} />
+              {percentageChange[hoveredMonth]}% from last month
             </StatHelpText>
           </Stat>
           <Stat>
@@ -76,20 +182,18 @@ const Earnings = () => {
             <StatNumber>Product B</StatNumber>
             <StatHelpText>
               <StatArrow type="increase" />
-              $20,000
+              Rs 20,000
             </StatHelpText>
           </Stat>
         </SimpleGrid>
 
         {/* Aligning Bar and Pie chart side by side */}
         <Grid templateColumns="repeat(2, 1fr)" gap={6} alignItems="center">
-          {/* Bar Graph */}
           <GridItem height="300px">
             <Heading size="md" mb="4">Earnings by Month</Heading>
             <Bar data={barData} options={chartOptions} />
           </GridItem>
 
-          {/* Pie Chart */}
           <GridItem height="300px">
             <Heading size="md" mb="4">Profit by Product</Heading>
             <Pie data={pieData} options={{ responsive: true, maintainAspectRatio: false }} />

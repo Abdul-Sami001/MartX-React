@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Box, VStack, Heading, FormControl, FormLabel, Input, Button, Text, useToast, Toast } from '@chakra-ui/react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Box, VStack, Heading, FormControl, FormLabel, Input, Button, RadioGroup, Radio, useToast } from '@chakra-ui/react';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
-import { useMutation } from '@tanstack/react-query';  // React Query for mutations
-import { createOrder, createPaymentIntent } from '../services/checkoutService';  // Updated services
-import { toast } from 'react-toastify';
+import { useMutation } from '@tanstack/react-query';
+import { createOrder, createPaymentIntent } from '../services/checkoutService';
+
 export default function CheckoutPage() {
-   
-    const [loading, setLoading] = useState(false);  // Handle loading state during payment process
-    const [userInfo, setUserInfo] = useState({  // Store user billing info
+    const [loading, setLoading] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState('');
+    const [userInfo, setUserInfo] = useState({
         name: '',
         email: '',
         address: '',
@@ -16,14 +16,16 @@ export default function CheckoutPage() {
         country: '',
         postal_code: '',
     });
-    const toast = useToast();  // Toast notifications for feedback
+
+    const toast = useToast();
     const navigate = useNavigate();
-    const stripe = useStripe();  // Stripe instance for payment processing
-    const elements = useElements();  // Access Stripe's card elements
+    const stripe = useStripe();
+    const elements = useElements();
+    const location = useLocation();
 
     // Populate fields with guest information from localStorage (if available)
     useEffect(() => {
-        const guestInfo = JSON.parse(localStorage.getItem('guestInfo'));  // Retrieve guest info from localStorage
+        const guestInfo = JSON.parse(localStorage.getItem('guestInfo'));
         if (guestInfo) {
             setUserInfo({
                 name: guestInfo.name || '',
@@ -34,24 +36,21 @@ export default function CheckoutPage() {
                 postal_code: guestInfo.postal_code || '',
             });
         }
-    }, []);  // Only run this effect once when the component mounts
+    }, []);
 
-    // Handle form input changes
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setUserInfo((prev) => ({ ...prev, [name]: value }));
-    };
-
-    // React Query Mutations for order creation and payment intent
+    // Order creation mutation
     const createOrderMutation = useMutation({
         mutationFn: async () => {
-            const cartId = localStorage.getItem('cartId');  // Retrieve cart ID
-           
-            if (!cartId) {
-                throw new Error('Cart ID not found. Please add items to the cart first.');
-            }
-    
-            return createOrder({ cartId, userInfo });  // Call createOrder from the service
+            const { productId, quantity, guestInfo } = location.state || {};
+            const cartId = localStorage.getItem('cartId');
+            const payload = {
+                cartId,
+                userInfo: guestInfo || userInfo,
+                productId,
+                quantity,
+                paymentMethod,
+            };
+            return createOrder(payload);
         },
         onError: (error) => {
             console.error('Order creation failed:', error);
@@ -66,9 +65,10 @@ export default function CheckoutPage() {
         }
     });
 
+    // Payment intent mutation
     const createPaymentIntentMutation = useMutation({
         mutationFn: async (orderId) => {
-            return createPaymentIntent({ orderId });  // Call createPaymentIntent from the service
+            return createPaymentIntent({ orderId });
         },
         onError: (error) => {
             console.error('Payment Intent creation failed:', error);
@@ -83,79 +83,122 @@ export default function CheckoutPage() {
         }
     });
 
-    // Handle the submission of the payment form
+    // Handle form input changes
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setUserInfo((prev) => ({ ...prev, [name]: value }));
+    };
+
+    // Handle payment method selection
+    const handlePaymentMethodChange = (value) => {
+        setPaymentMethod(value);
+    };
+
+    // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
-        try {
-            // Ensure Stripe and elements are ready
-            if (!stripe || !elements) {
-                throw new Error('Stripe is not initialized.');
-            }
-            //recomment the below line if it not work properly
-            // Step 1: Create or retrieve the order
-            let orderId = localStorage.getItem('orderId'); 
-            if (!orderId) {
-                const orderData = await createOrderMutation.mutateAsync();  // Create a new order
-                orderId = orderData.orderId;  // Extract orderId from the response
-                localStorage.setItem('orderId', orderId);  // Save the new orderId in localStorage
-            
-            }
-            console.log("created order Id Checkout Page", orderId); // Save the order ID to avoid re-creating it
-
-            // Step 2: Create Payment Intent for the order
-            const clientSecret = await createPaymentIntentMutation.mutateAsync( orderId );
-
-            // Step 3: Confirm the payment using Stripe
-            const cardElement = elements.getElement(CardElement);
-            const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-                payment_method: {
-                    card: cardElement,
-                    billing_details: {
-                        name: userInfo.name,
-                        email: userInfo.email,
-                        address: {
-                            line1: userInfo.address,
-                            city: userInfo.city,
-                            country: userInfo.country,
-                            postal_code: userInfo.postalCode,
-                        },
-                    },
-                },
-            });
-
-            if (error) {
-                throw new Error(error.message);
-            }
-
-            // Notify user of successful payment
+        if (!paymentMethod) {
             toast({
-                title: 'Payment Successful',
-                description: `Payment ID: ${paymentIntent.id}`,
-                status: 'success',
+                title: 'Select Payment Method',
+                description: 'Please select a payment method before proceeding.',
+                status: 'warning',
                 duration: 5000,
                 isClosable: true,
             });
+            setLoading(false);
+            return;
+        }
 
-            // Save order details for guest users
+        try {
+            // Step 1: Create the order
+            const { orderId } = await createOrderMutation.mutateAsync();
+
+            // Step 2: If Stripe is selected, create payment intent and process payment
+            if (paymentMethod === 'stripe') {
+                const clientSecret = await createPaymentIntentMutation.mutateAsync(orderId);
+
+                if (!clientSecret) {
+                    throw new Error('Failed to retrieve payment client secret.');
+                }
+
+                // Confirm the payment using Stripe
+                const cardElement = elements.getElement(CardElement); 
+                console.log('client secret above card function',clientSecret)
+                const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+                    payment_method: {
+                        card: cardElement,
+                        billing_details: {
+                            name: userInfo.name,
+                            email: userInfo.email,
+                            address: {
+                                line1: userInfo.address,
+                                city: userInfo.city,
+                                country: userInfo.country,
+                                postal_code: userInfo.postal_code,
+                            },
+                        },
+                    },
+                });
+                if (!cardElement || !clientSecret) {
+                    console.error('CardElement not found or clientSecret is missing');
+                    return;
+                }
+                console.log('Billing Details:', {
+                    name: userInfo.name,
+                    email: userInfo.email,
+                    address: userInfo.address,
+                    city: userInfo.city,
+                    country: userInfo.country,
+                    postal_code: userInfo.postal_code,
+                });
+                console.log('Client Secret', clientSecret);
+                console.log('Payment Intent:', paymentIntent); 
+
+                if (error) {
+                    console.error('Error during payment confirmation:', error);
+                    return;
+                }
+
+                if (error) {
+                    throw new Error(`Payment failed: ${error.message}`);
+                }
+
+                // Notify user of successful payment
+                toast({
+                    title: 'Payment Successful',
+                    description: `Payment ID: ${paymentIntent.id}`,
+                    status: 'success',
+                    duration: 5000,
+                    isClosable: true,
+                });
+            } else {
+                // If COD, just notify user of successful order creation
+                toast({
+                    title: 'Order Placed',
+                    description: 'Your order has been placed successfully with Cash on Delivery.',
+                    status: 'success',
+                    duration: 5000,
+                    isClosable: true,
+                });
+            }
+
+            // Clear local storage
             localStorage.removeItem('orderId');
-            //localStorage.setItem('guestOrderId', createdOrderId);
-            localStorage.setItem('guestEmail', userInfo.email);
+            localStorage.removeItem('guestInfo');
 
-            // Redirect guest user to the guest order confirmation page
-            
-            navigate(`/guest-order-confirmation/${orderId}`);
+            // Redirect to confirmation page
+            navigate(`/order-confirmation/${orderId}`);
 
         } catch (error) {
             toast({
-                title: 'Payment Failed',
-                description: error.message,
+                title: 'Checkout Failed',
+                description: error.message || 'An error occurred during checkout.',
                 status: 'error',
                 duration: 5000,
                 isClosable: true,
             });
-            console.error('Payment failed:', error);  // Log any error for better debugging
         } finally {
             setLoading(false);
         }
@@ -193,17 +236,28 @@ export default function CheckoutPage() {
                 </FormControl>
 
                 <FormControl isRequired>
-                    <FormLabel htmlFor="postalCode">Postal Code</FormLabel>
-                    <Input id="postalCode" name="postalCode" value={userInfo.postal} onChange={handleInputChange} />
+                    <FormLabel htmlFor="postal_code">Postal Code</FormLabel>
+                    <Input id="postal_code" name="postal_code" value={userInfo.postal_code} onChange={handleInputChange} />
                 </FormControl>
 
-                {/* Stripe Card Element */}
+                {/* Payment Method Selection */}
                 <FormControl isRequired>
-                    <FormLabel htmlFor="card-element">Credit or Debit Card</FormLabel>
-                    <Box border="1px solid" borderColor="gray.200" borderRadius="md" p={3}>
-                        <CardElement id="card-element" />
-                    </Box>
+                    <FormLabel>Select Payment Method</FormLabel>
+                    <RadioGroup onChange={handlePaymentMethodChange} value={paymentMethod}>
+                        <Radio value="stripe">Stripe</Radio>
+                        <Radio value="cod">Cash on Delivery (COD)</Radio>
+                    </RadioGroup>
                 </FormControl>
+
+                {/* Stripe Card Element (only show if Stripe is selected) */}
+                {paymentMethod === 'stripe' && (
+                    <FormControl isRequired>
+                        <FormLabel htmlFor="card-element">Credit or Debit Card</FormLabel>
+                        <Box border="1px solid" borderColor="gray.200" borderRadius="md" p={3}>
+                            <CardElement id="card-element" />
+                        </Box>
+                    </FormControl>
+                )}
 
                 {/* Pay Now Button */}
                 <Button type="submit" colorScheme="blue" isLoading={loading} loadingText="Processing" width="full">

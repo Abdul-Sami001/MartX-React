@@ -15,7 +15,7 @@ import ProductPage from './pages/ProductDetailpage';
 import CheckoutPage from './components/CheckoutPage';
 import OrderConfirmation from './components/OrderConfirmation';
 import GuestOrderView from './components/GuestOrderView';
-import Dashboard from './pages/Dashboard';
+//import Dashboard from './pages/Dashboard';
 import ImageUpload from './components/Image';
 import LogoutButton from './components/LogoutButton';
 import { useCart } from './hooks/useCart';
@@ -26,6 +26,8 @@ import OrderHistory from './components/OrderHistory';
 import OrderDetail from './components/OrderDetail';
 import GuestOrderTracking from './components/GuestOrderTracking';
 import VendorProductsPage from './components/VendorProductsPage';
+import ProductListing from './components/ProductListing';
+import Profile from './components/Profile';
 
 // Seller Dashboard Components
 import SellerDashboard from './components/seller/SellerDashboard';
@@ -35,7 +37,17 @@ import Earnings from './components/seller/Earnings';
 import DailySalesLineChart from './components/seller/DailySalesLineChart';
 import Header from './components/seller/Header';
 import MonthlyStatsBarChart from './components/seller/MonthlyStatsBarChart';
-import Ordersdetails from './components/seller/Ordersdetails';
+import VendorOrders from './components/seller/VendorOrders';
+import MainSellerPage from './components/seller/MainSellerPage';
+import AuthComponent from './components/AuthComponent';
+import ProfilePreview from './components/ProfilePopover';
+import ProfileModal from './components/ProfilePopover';
+import ProductSearchPage from './pages/ProductSearchPage';
+import VendorListingPage from './pages/VendorListingPage';
+import VendorSales from './components/seller/VendorSales'
+import ProfilePopover from './components/ProfilePopover';
+import SellerSignup from './components/seller/SellerSignup';
+
 
 
 const stripePromise = loadStripe('pk_test_51PsV1D03pR92vHPUx85GxUuipVPCfKAjxsboQbvefxLLoZFQUC0Ec6xD0P99uWJth7pW2SHuGQCCzT7sq2sA9azK00Au7Rxijd');
@@ -66,6 +78,10 @@ function App() {
         <Router>
       
           <Routes>
+            <Route path="/sellersignup" element={<SellerSignup />} />
+          <Route path="/profilepop" element={<ProfilePopover />} />
+          <Route path="/auth" element={<AuthComponent />} />
+            <Route path="/products" element={<ProductSearchPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
@@ -73,22 +89,38 @@ function App() {
             <Route path="/checkout/:orderId" element={<CheckoutPage />} />
             <Route path="/checkout/" element={<CheckoutPage />} />
             <Route path="/guest-info/" element={<GuestInfoModal />} />
-            <Route path="/confirmation/:orderId" element={<OrderConfirmation />} />
+            <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
             <Route path="/guest-order-confirmation/:orderId" element={<GuestOrderView />} />
-            <Route path="/seller" element={<SellerDashboard />} />
             <Route path="/image" element={<ImageUpload />} />
             <Route path="/logout" element={<LogoutButton />} />
 
             {/* Order Routes */}
-            <Route path="/orders" element={<OrderHistory />} />
-            <Route path="/orders/:orderId" element={<OrderDetail />} />
+            <Route path="/order-history" element={<OrderHistory />} />
+            <Route path="/order-detail/:orderId" element={<OrderDetail />} />
             <Route path="/guest-order-tracking" element={<GuestOrderTracking />} />
 
             {/* Vendor Product Listing */}
             <Route path="/vendors/:vendorId/products" element={<VendorProductsPage />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/vendor-orders" element={<VendorOrders/>} />
+            <Route path="/vendors" element={<VendorListingPage/>} />
+            <Route path="/vendorsales" element={<VendorSales />} />
+            
 
+            {/*sidebar router component*/}
+            {/* <Router>
+              <Sidebar>
+                <Routes>
+                  <Route path="/vendorsales" element={<VendorSales />} />
+                  <Route path="/manage-inventory" element={<ManageInventory />} />
+                  <Route path="/earnings" element={<Earnings />} />
+                  <Route path="/vendor-orders" element={<VendorOrders />} />
+                </Routes>
+              </Sidebar>
+    </Router> */}
             {/* Seller Dashboard Routes */}
-            <Route path="/seller-dashboard" element={<SellerDashboard />} />
+            <Route path="/MainSellerPage" element={<MainSellerPage />} />
+            <Route path="/MainSellerPage" element={<SellerDashboard />} />
             <Route path="/manage-inventory" element={<ManageInventory />} />
             <Route path="/earnings" element={<Earnings />} />
             <Route path="/sidebar" element={<Sidebar />} />
